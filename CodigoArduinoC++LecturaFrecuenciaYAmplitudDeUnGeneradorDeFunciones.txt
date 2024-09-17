@@ -1,0 +1,59 @@
+const int pinAnalogico = 0;
+const unsigned long intervaloCaptura = 5;  // Intervalo entre lecturas en milisegundos
+const unsigned long duracionCaptura = 5000;  // Duración total de captura en milisegundos
+
+float amplitud;
+float frecuencia;
+
+void setup() {
+  Serial.begin(9600);
+}
+
+void loop() {
+  capturarAmplitudFrecuencia();
+  
+  Serial.print("Amplitud: ");
+  Serial.print(amplitud);
+  Serial.print(" V, Frecuencia: ");
+  Serial.print(frecuencia);
+  Serial.println(" Hz");
+  
+  delay(1000);  // Espera 1 segundo antes de la siguiente captura
+}
+
+void capturarAmplitudFrecuencia() {
+  unsigned long tiempoInicio = millis();
+  int valorMax = 0;
+  int valorMin = 1023;
+  int crucesUmbral = 0;
+  int valorAnterior = analogRead(pinAnalogico);
+  int umbral = 0;  // Ajusta este valor si es necesario
+
+  while (millis() - tiempoInicio < duracionCaptura) {
+    int valorActual = analogRead(pinAnalogico);
+
+    // Actualiza valores máximo y mínimo
+    if (valorActual > valorMax) valorMax = valorActual;
+    if (valorActual < valorMin) valorMin = valorActual;
+
+    // Detecta cruces de umbral
+    if ((valorAnterior < umbral && valorActual >= umbral) || 
+        (valorAnterior > umbral && valorActual <= umbral)) {
+      crucesUmbral++;
+    }
+
+    valorAnterior = valorActual;
+    delay(intervaloCaptura);
+  }
+  
+  // Cálculo de amplitud
+  amplitud = (valorMax - valorMin) * (5.0 / 1023.0);
+  
+  // Cálculo de frecuencia
+  float tiempoTotal = duracionCaptura / 1000.0;  // Tiempo total en segundos
+  if (tiempoTotal > 0) {
+    frecuencia = (float)crucesUmbral / (2.0 * tiempoTotal);  // Dividido por 2 para obtener el número de ciclos
+  } else {
+    frecuencia = 0.0;
+  }
+}
